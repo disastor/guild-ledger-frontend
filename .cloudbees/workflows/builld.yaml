@@ -17,7 +17,7 @@ jobs:
         uses: docker://node:20
         shell: sh
         run: |
-          npm ci
+          npm install
           npm run build
 
       - name: Deploy to Netlify
