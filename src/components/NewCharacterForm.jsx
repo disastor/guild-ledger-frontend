@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api } from "../api";
+import { storage } from "../storage";
 
 const initialState = { name: "", class: "", role: "", bio: "" };
 
@@ -11,16 +11,13 @@ export default function NewCharacterForm({ onCreated }) {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
-    try {
-      await api.createCharacter(form);
-      setForm(initialState);
-      onCreated();
-    } finally {
-      setSubmitting(false);
-    }
+    storage.createCharacter(form);
+    setForm(initialState);
+    onCreated();
+    setSubmitting(false);
   }
 
   return (

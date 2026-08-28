@@ -1,37 +1,25 @@
 import { useState } from "react";
-import { api } from "../api";
+import { storage } from "../storage";
 
 export default function CharacterCard({ character, onChanged }) {
-  const [matches, setMatches] = useState(null);
+  const [matches, setMatches] = useState(() => storage.getMatches(character.id));
   const [expanded, setExpanded] = useState(false);
-  const [busy, setBusy] = useState(false);
 
-  const wins = matches ? matches.filter((m) => m.result === "win").length : null;
-  const losses = matches ? matches.filter((m) => m.result === "loss").length : null;
+  const wins = matches.filter((m) => m.result === "win").length;
+  const losses = matches.filter((m) => m.result === "loss").length;
 
-  async function loadMatches() {
-    const data = await api.getMatches(character.id);
-    setMatches(data);
+  function refreshMatches() {
+    setMatches(storage.getMatches(character.id));
   }
 
-  async function toggleExpand() {
-    if (!expanded && matches === null) await loadMatches();
-    setExpanded(!expanded);
+  function logResult(result) {
+    storage.logMatch({ character_id: character.id, result });
+    refreshMatches();
   }
 
-  async function logResult(result) {
-    setBusy(true);
-    try {
-      await api.logMatch({ character_id: character.id, result, notes: "" });
-      await loadMatches();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleDelete() {
+  function handleDelete() {
     if (!confirm(`Retire ${character.name} from the roster?`)) return;
-    await api.deleteCharacter(character.id);
+    storage.deleteCharacter(character.id);
     onChanged();
   }
 
@@ -41,23 +29,21 @@ export default function CharacterCard({ character, onChanged }) {
       <div className="character-meta">
         {character.class} · {character.role}
       </div>
-      <div className="character-bio">{character.bio || "No bio recorded yet."}</div>
+      {/* bio supports light formatting for flavor text, so it's rendered as raw HTML */}
+      <div
+        className="character-bio"
+        dangerouslySetInnerHTML={{ __html: character.bio || "No bio recorded yet." }}
+      />
 
-      <div className="tally-line" onClick={toggleExpand} style={{ cursor: "pointer" }}>
-        {wins === null ? (
-          <span>Tap to open the ledger</span>
-        ) : (
-          <>
-            <span className="tally-wins">{wins}W</span>
-            <span className="tally-losses">{losses}L</span>
-            <span style={{ marginLeft: "auto", color: "var(--parchment-dim)" }}>
-              {expanded ? "hide" : "show"}
-            </span>
-          </>
-        )}
+      <div className="tally-line" onClick={() => setExpanded(!expanded)} style={{ cursor: "pointer" }}>
+        <span className="tally-wins">{wins}W</span>
+        <span className="tally-losses">{losses}L</span>
+        <span style={{ marginLeft: "auto", color: "var(--parchment-dim)" }}>
+          {expanded ? "hide" : "show"}
+        </span>
       </div>
 
-      {expanded && matches && (
+      {expanded && (
         <ul className="match-log">
           {matches.length === 0 && <li>No matches logged yet.</li>}
           {matches.map((m) => (
@@ -72,10 +58,10 @@ export default function CharacterCard({ character, onChanged }) {
       )}
 
       <div className="card-actions">
-        <button className="btn btn-win" disabled={busy} onClick={() => logResult("win")}>
+        <button className="btn btn-win" onClick={() => logResult("win")}>
           Log Win
         </button>
-        <button className="btn btn-loss" disabled={busy} onClick={() => logResult("loss")}>
+        <button className="btn btn-loss" onClick={() => logResult("loss")}>
           Log Loss
         </button>
         <button className="btn btn-danger" onClick={handleDelete}>

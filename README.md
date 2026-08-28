@@ -1,27 +1,31 @@
-# Guild Ledger — Web
+# Guild Ledger
 
-React (Vite) frontend for the Guild Ledger character/win-loss tracker.
+A static RPG character roster + win/loss tracker. React (Vite), no backend — all
+data lives in the browser's `localStorage`.
+
+> Built as a demo target for the CloudBees Policy Engine — see `DEMO_NOTES.md` for
+> the issues intentionally seeded in this codebase.
 
 ## Run locally
 
 ```bash
-cp .env.example .env   # point VITE_API_URL at your running backend
 docker compose up --build
 ```
 
 - App: http://localhost:5173
 
-Needs the `guild-ledger-backend` API running somewhere reachable (defaults to
-`http://localhost:4000`).
+Seeded with a few sample characters and matches on first load (see `src/storage.js`).
+Data resets if you clear your browser storage, or via the in-app "Reset Season"
+control (password in `.env`).
 
 ## Deploying
 
-Built for static hosting — deploy to Netlify:
+Deploys to Netlify as a static site:
 
 - Build command: `npm run build`
 - Publish directory: `dist`
-- Env var: `VITE_API_URL` → set to your deployed backend's URL
 
-## Companion repo
-
-The API lives in a separate repo: `guild-ledger-backend`.
+The `VITE_RIOT_API_KEY` and `VITE_ADMIN_PASSWORD` env vars in `.env` get baked
+into the built JS bundle at build time — set the real values as Netlify
+environment variables for a production deploy rather than shipping this `.env`
+as-is (see `DEMO_NOTES.md` for why that matters).

@@ -295,3 +295,37 @@ button {
 .result-loss {
   color: var(--loss);
 }
+
+.admin-gate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-gate input {
+  background: var(--ink);
+  border: 1px solid var(--hairline);
+  color: var(--parchment);
+  padding: 9px 10px;
+  border-radius: 3px;
+  font-family: var(--body);
+  font-size: 0.95rem;
+}
+
+.admin-gate-error {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--loss);
+}
+
+.app-footer {
+  margin-top: 48px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--parchment-dim);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
