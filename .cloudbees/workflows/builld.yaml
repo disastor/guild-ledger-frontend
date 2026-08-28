@@ -11,10 +11,7 @@ jobs:
   build-and-deploy:
     steps:
       - name: Check out source code
-        uses: https://github.com/cloudbees-io/checkout@v1
-        with:
-          repository: ${{ cloudbees.repository }}
-          token: ${{ cloudbees.scm.token }}
+        uses: https://github.com/cloudbees-io/checkout@v2
 
       - name: Install dependencies and build
         uses: docker://node:20
