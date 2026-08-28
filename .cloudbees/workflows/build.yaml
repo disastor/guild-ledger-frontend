@@ -17,6 +17,7 @@ jobs:
         uses: docker://node:20
         shell: sh
         run: |
+          rm -rf node_modules package-lock.json
           npm install
           npm run build
 
