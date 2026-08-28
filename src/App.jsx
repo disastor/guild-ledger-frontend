@@ -20,7 +20,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <div className="masthead">
-        <h1>The Guild Ledger</h1>
+        <h1>The Guild Builder</h1>
         <span className="subtitle">Roster &amp; Match Record</span>
       </div>
 
