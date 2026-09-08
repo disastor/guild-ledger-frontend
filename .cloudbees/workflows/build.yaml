@@ -13,7 +13,9 @@ permissions:
   id-token: write
 
 jobs:
-  build-and-deploy:
+  scan-and-evaluate:
+    outputs:
+      policy-subject: ${{ steps.build-policy-subject.outputs.policy-subject }}
     steps:
       - name: Check out source code
         uses: https://github.com/cloudbees-io/checkout@v2
@@ -22,16 +24,79 @@ jobs:
         id: njsscan-step
         uses: cloudbees-io/njsscan-hybrid-plugin@v1
 
-      - name: Debug — njsscan outputs
+      # njsscan-hybrid-plugin@v1 only exposes count outputs (critical-count,
+      # very-high-count, high-count, medium-count, low-count) — confirmed via
+      # a live 401-style validation error, no policy-subject output exists.
+      # So we build the policy-subject object ourselves from those counts.
+      #
+      # We don't yet know for certain whether the "vulnerability_scan" subject
+      # type needs a ".data." wrapper (one confirmed reference policy without
+      # it, one confirmed reference policy WITH it for a different subject
+      # type, sast_scan_summary). Writing both shapes so either field path
+      # resolves to real numbers rather than guessing wrong.
+      - id: build-policy-subject
+        name: Build policy subject from njsscan counts
         uses: docker://alpine:latest
         shell: sh
+        env:
+          CRITICAL: ${{ steps.njsscan-step.outputs.critical-count }}
+          VERY_HIGH: ${{ steps.njsscan-step.outputs.very-high-count }}
+          HIGH: ${{ steps.njsscan-step.outputs.high-count }}
+          MEDIUM: ${{ steps.njsscan-step.outputs.medium-count }}
+          LOW: ${{ steps.njsscan-step.outputs.low-count }}
         run: |
-          echo "critical-count:   ${{ steps.njsscan-step.outputs.critical-count }}"
-          echo "very-high-count:  ${{ steps.njsscan-step.outputs.very-high-count }}"
-          echo "high-count:       ${{ steps.njsscan-step.outputs.high-count }}"
-          echo "medium-count:     ${{ steps.njsscan-step.outputs.medium-count }}"
-          echo "low-count:        ${{ steps.njsscan-step.outputs.low-count }}"
-          echo "policy-subject:   ${{ steps.njsscan-step.outputs.policy-subject }}"
+          cat > "$CLOUDBEES_OUTPUTS/policy-subject" << EOF
+          {
+            "vulnerability_scan": {
+              "summary": {
+                "by_severity": {
+                  "critical": ${CRITICAL:-0},
+                  "very_high": ${VERY_HIGH:-0},
+                  "high": ${HIGH:-0},
+                  "medium": ${MEDIUM:-0},
+                  "low": ${LOW:-0}
+                }
+              },
+              "data": {
+                "summary": {
+                  "by_severity": {
+                    "critical": ${CRITICAL:-0},
+                    "very_high": ${VERY_HIGH:-0},
+                    "high": ${HIGH:-0},
+                    "medium": ${MEDIUM:-0},
+                    "low": ${LOW:-0}
+                  }
+                }
+              }
+            }
+          }
+          EOF
+          echo "--- policy-subject built ---"
+          cat "$CLOUDBEES_OUTPUTS/policy-subject"
+
+  policy-evaluation-within:
+    needs: scan-and-evaluate
+    uses: cloudbees-io/policy-utils/evaluate-policy-context/workflow.yml@v2
+    with:
+      input-data: ${{ needs.scan-and-evaluate.outputs.policy-subject }}
+      checkpoint-type: workflow
+      checkpoint-position: within
+
+  policy-evaluation-exit:
+    needs:
+      - policy-evaluation-within
+      - scan-and-evaluate
+    uses: cloudbees-io/policy-utils/evaluate-policy-context/workflow.yml@v2
+    with:
+      input-data: ${{ needs.scan-and-evaluate.outputs.policy-subject }}
+      checkpoint-type: workflow
+      checkpoint-position: exit
+
+  build-and-deploy:
+    needs: policy-evaluation-exit
+    steps:
+      - name: Check out source code
+        uses: https://github.com/cloudbees-io/checkout@v2
 
       - name: Install dependencies and build
         uses: docker://node:20
