@@ -1,19 +1,37 @@
 apiVersion: automation.cloudbees.io/v1alpha1
 kind: workflow
 name: build-and-deploy
-#adding comment to trigger policy
-#another comment
 
 on:
   push:
     branches:
       - main
 
+permissions:
+  scm-token-own: read
+  scm-token-org: read
+  id-token: write
+
 jobs:
   build-and-deploy:
     steps:
       - name: Check out source code
         uses: https://github.com/cloudbees-io/checkout@v2
+
+      - name: Scan with njsscan
+        id: njsscan-step
+        uses: cloudbees-io/njsscan-hybrid-plugin@v1
+
+      - name: Debug — njsscan outputs
+        uses: docker://alpine:latest
+        shell: sh
+        run: |
+          echo "critical-count:   ${{ steps.njsscan-step.outputs.critical-count }}"
+          echo "very-high-count:  ${{ steps.njsscan-step.outputs.very-high-count }}"
+          echo "high-count:       ${{ steps.njsscan-step.outputs.high-count }}"
+          echo "medium-count:     ${{ steps.njsscan-step.outputs.medium-count }}"
+          echo "low-count:        ${{ steps.njsscan-step.outputs.low-count }}"
+          echo "policy-subject:   ${{ steps.njsscan-step.outputs.policy-subject }}"
 
       - name: Install dependencies and build
         uses: docker://node:20
